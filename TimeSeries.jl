@@ -1,8 +1,9 @@
 module Thesis
 
-export normalize_ts, normalize_ts!
+export normalize_ts, normalize_ts!,
+    covariance_matrix,
 
-using Statistics, LinearAlgebra
+using Statistics, Random, LinearAlgebra
 
 @doc raw"""
     normalize_ts(x::AbstractVector{<:Real})
@@ -60,16 +61,16 @@ Normalize in place each column `xᵢ` a given time series matrix `M`:
     foreach(normalize_ts!, eachcol(M))
 
 @doc raw"""
-    cross_correlation_matrix(M::AbstractMatrix{<:Real})
+    covariance_matrix(M::AbstractMatrix{<:Real})
 
-Cross correlation matrix `G` of a given time series matrix `M_ts`.
+Covariance matrix `G` of a given time series matrix `M_ts`.
 
     ``G = \frac{1}{N_{samples}} M_{ts}^T M_{ts}``
 
 # Arguments:
 - `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-@inline cross_correlation_matrix(M::AbstractMatrix{<:Real}) =
+@inline covariance_matrix(M::AbstractMatrix{<:Real}) =
     Symmetric(M' * M) ./ size(M, 1)
 
 end
