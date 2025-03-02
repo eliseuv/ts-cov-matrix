@@ -1,4 +1,4 @@
-module Thesis
+module TimeSeries
 
 export normalize_ts, normalize_ts!,
     covariance_matrix,
