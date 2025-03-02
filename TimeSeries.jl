@@ -2,6 +2,9 @@ module Thesis
 
 export normalize_ts, normalize_ts!,
     covariance_matrix,
+    covariance_matrix_eigvals,
+    split_columns,
+    bootstrap_columns
 
 using Statistics, Random, LinearAlgebra
 
@@ -72,5 +75,35 @@ Covariance matrix `G` of a given time series matrix `M_ts`.
 """
 @inline covariance_matrix(M::AbstractMatrix{<:Real}) =
     Symmetric(M' * M) ./ size(M, 1)
+
+@doc raw"""
+    covariance_matrix_eigvals(M_ts::AbstractMatrix{<:Real})
+
+Covariance matrix eigenvalues `G` of a given time series matrix `M_ts`.
+"""
+covariance_matrix_eigvals = eigvals ∘ covariance_matrix ∘ normalize_ts
+
+
+@doc raw"""
+    split_columns(M::AbstractMatrix, n_samples::Integer)
+
+Split the columns of a given matrix `M` into `n_samples` groups resulting in a 3D array.
+"""
+@inline split_columns(M::AbstractMatrix, n_samples::Integer) =
+    let (n_rows, n_cols) = size(M)
+        @assert n_cols % n_samples == 0 "Number of columns must be divisible by number of samples"
+        n_cols′ = n_cols ÷ n_samples
+        reshape(M, (n_rows, n_cols′, n_samples))
+    end
+
+@doc raw"""
+    bootstrap_columns(M::AbstractMatrix{<:Real}, n_batch::Integer, n_samples::Integer)
+
+Bootstrap sample the columns of a matrix `M` by averaging random `n_batch` columns `n_samples` times.
+"""
+@inline bootstrap_columns(M::AbstractMatrix{<:Real}, n_batch::Integer, n_samples::Integer) =
+    let n_cols = size(M, 2)
+        reduce(hcat, map(_ -> mean(M[:, randperm(n_cols)[begin:n_batch]], dims=2), 1:n_samples))
+    end
 
 end
