@@ -1,8 +1,7 @@
 module Statistics
 
 export Histogram,
-    bins_center,
-    mean
+    bins_center
 
 using Statistics
 
