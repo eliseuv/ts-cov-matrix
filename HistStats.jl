@@ -1,4 +1,4 @@
-module Statistics
+module HistStats
 
 export Histogram,
     bins_center
