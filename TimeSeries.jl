@@ -3,8 +3,8 @@ module TimeSeries
 export normalize_ts, normalize_ts!,
     covariance_matrix,
     covariance_matrix_eigvals,
-    split_columns,
-    bootstrap_columns
+    bootstrap_columns,
+    split_columns
 
 using Statistics, Random, LinearAlgebra
 
@@ -66,35 +66,41 @@ Normalize in place each column `xᵢ` a given time series matrix `M`:
 @doc raw"""
     covariance_matrix(M::AbstractMatrix{<:Real})
 
-Covariance matrix `G` of a given time series matrix `M_ts`.
+Covariance matrix `G` of a given time series matrix `M`.
 
-    ``G = \frac{1}{N_{samples}} M_{ts}^T M_{ts}``
-
-# Arguments:
-- `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
+    ``G = \frac{1}{m} M^T M``
 """
 @inline covariance_matrix(M::AbstractMatrix{<:Real}) =
     Symmetric(M' * M) ./ size(M, 1)
 
 @doc raw"""
-    covariance_matrix_eigvals(M_ts::AbstractMatrix{<:Real})
+    covariance_matrix_eigvals(M::AbstractMatrix{<:Real})
 
-Covariance matrix eigenvalues `G` of a given time series matrix `M_ts`.
+Calculate the eigenvalues of the covariance matrix of a given time series matrix `M`.
 """
-covariance_matrix_eigvals = eigvals ∘ covariance_matrix ∘ normalize_ts
+@inline covariance_matrix_eigvals(::AbstractMatrix{<:Real}) =
+    eigvals ∘ covariance_matrix
+
+@doc raw"""
+    split_columns(M::AbstractMatrix, n_groups::Integer)
+
+Split the columns of a given matrix `M` into `n_groups` groups resulting in a 3D array.
+"""
+@inline split_columns(M::AbstractMatrix, n_groups::Integer) =
+    let (n_rows, n_cols) = size(M)
+        @assert n_cols % n_groups == 0 "Number of columns must be divisible by number of samples"
+        n_cols′ = n_cols ÷ n_groups
+        reshape(M, (n_rows, n_cols′, n_groups))
+    end
 
 
 @doc raw"""
-    split_columns(M::AbstractMatrix, n_samples::Integer)
+    covariance_matrix_eigvals(M::AbstractMatrix{<:Real}, n_groups::Integer)
 
-Split the columns of a given matrix `M` into `n_samples` groups resulting in a 3D array.
+Calculate the eigenvalues of the covariance matrix of a given time series matrix `M`.
 """
-@inline split_columns(M::AbstractMatrix, n_samples::Integer) =
-    let (n_rows, n_cols) = size(M)
-        @assert n_cols % n_samples == 0 "Number of columns must be divisible by number of samples"
-        n_cols′ = n_cols ÷ n_samples
-        reshape(M, (n_rows, n_cols′, n_samples))
-    end
+@inline covariance_matrix_eigvals(M::AbstractMatrix{<:Real}, n_groups::Integer) =
+    dropdims(mapslices(eigvals ∘ covariance_matrix, split_columns(M, n_groups), dims=(1, 2)), dims=(2,))
 
 @doc raw"""
     bootstrap_columns(M::AbstractMatrix{<:Real}, n_batch::Integer, n_samples::Integer)
