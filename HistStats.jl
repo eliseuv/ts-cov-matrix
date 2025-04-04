@@ -1,34 +1,45 @@
 module HistStats
 
-export Histogram,
-    bins_center
+export
+    Histogram, LogHistogram,
+    midpoints, log_midpoints
 
 using Statistics
 
-struct Histogram
+struct Histogram{T<:Real}
 
-    edges::AbstractRange{Float64}
+    edges::AbstractVector{T}
     freqs::AbstractVector{UInt64}
 
-    # Constructor from values
-    function Histogram(values::AbstractVector{<:Real}, n_bins::Integer)
-        low, high = extrema(values)
+    function Histogram(vals::AbstractArray{<:Real}, edges::AbstractVector{T}) where {T<:Real}
+        freqs = zeros(UInt64, length(edges) - 1)
+        for idx ∈ map(x -> findfirst(edges[begin:end-1] .<= x .< edges[begin+1:end]), vals) |> filter(!isnothing)
+            freqs[idx] += 1
+        end
+
+        return new{T}(edges, freqs)
+    end
+
+    function Histogram(vals::AbstractArray{<:Real}, n_bins::Integer)
+        low, high = extrema(vals)
         bin_width = (high - low) / n_bins
 
         edges = range(low, high, length=n_bins + 1)
 
         freqs = zeros(UInt64, n_bins)
-        for idx ∈ min.(floor.(UInt64, (values .- low) ./ bin_width) .+ 1, n_bins)
+        for idx ∈ min.(floor.(UInt64, (vals .- low) ./ bin_width) .+ 1, n_bins)
             freqs[idx] += 1
         end
 
-        return new(edges, freqs)
+        return new{Float64}(edges, freqs)
     end
 
 end
 
-@inline bins_center(hist::Histogram) =
-    hist.edges[begin:end-1] .+ (diff(hist.edges) ./ 2)
+@inline LogHistogram(vals::AbstractArray{<:Real}, n_bins::Integer) =
+    let (low, high) = extrema(vals)
+        Histogram(vals, logrange(low, high, n_bins + 1))
+    end
 
 @inline Statistics.mean(hist::Histogram) =
     let n = sum(hist.freqs)
@@ -48,5 +59,11 @@ end
     return sum(abs2(e - mean_used) * (f / (n - Int(corrected))) for (e, f) ∈ zip(hist.edges, hist.freqs))
 
 end
+
+@inline midpoints(x::AbstractVector{<:Real}) =
+    @views (x[begin:end-1] .+ x[begin+1:end]) ./ 2
+
+@inline log_midpoints(x::AbstractVector{<:Real}) =
+    @views sqrt.(x[begin:end-1] .* x[begin+1:end])
 
 end
