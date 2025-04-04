@@ -1,0 +1,37 @@
+module DataIO
+
+export
+# DataFile type
+    DataFile
+
+using CBOR
+
+#################
+# DataFile type #
+#################
+
+@doc raw"""
+    DataFileMetadata
+"""
+struct DataFileMetadata
+
+    path::AbstractString
+    dir::AbstractString
+    prefix::AbstractString
+    params::Dict{String,T} where {T}
+    ext::AbstractString
+
+    # New datafile from parameters
+    DataFileMetadata(dir::AbstractString, prefix::AbstractString, params...; ext::AbstractString=DEFAULT_DATAFILE_EXT, sep::AbstractString="_") =
+        new(joinpath(dir, filename(prefix, params...; sep=sep, ext=ext)), dir, prefix, merge_params(params...), ext)
+
+    # New datafile from path
+    DataFileMetadata(path::AbstractString; sep::AbstractString="_") =
+        let (dir, filename) = splitdir(path)
+            (prefix, params_dict, ext) = parse_filename(filename; sep=sep)
+            new(path, dir, prefix, params_dict, ext)
+        end
+end
+
+
+end
