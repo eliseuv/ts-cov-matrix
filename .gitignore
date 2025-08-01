@@ -1,5 +1,7 @@
 # Data files
 data
+*.txt
+*.zip
 
 # Plots
 plots/

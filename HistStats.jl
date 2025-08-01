@@ -9,17 +9,9 @@ using Statistics
 struct Histogram{T<:Real}
 
     edges::AbstractVector{T}
-    freqs::AbstractVector{UInt64}
+    freqs::AbstractVector
 
-    function Histogram(vals::AbstractArray{<:Real}, edges::AbstractVector{T}) where {T<:Real}
-        freqs = zeros(UInt64, length(edges) - 1)
-        for idx ∈ map(x -> findfirst(edges[begin:end-1] .<= x .< edges[begin+1:end]), vals) |> filter(!isnothing)
-            freqs[idx] += 1
-        end
-
-        return new{T}(edges, freqs)
-    end
-
+    # Fixed sized bins
     function Histogram(vals::AbstractArray{<:Real}, n_bins::Integer)
         low, high = extrema(vals)
         bin_width = (high - low) / n_bins
@@ -32,6 +24,16 @@ struct Histogram{T<:Real}
         end
 
         return new{Float64}(edges, freqs)
+    end
+
+    # Variable sized bins
+    function Histogram(vals::AbstractArray{<:Real}, edges::AbstractVector{T}) where {T<:Real}
+        freqs = zeros(UInt64, length(edges) - 1)
+        for idx ∈ map(x -> findfirst(edges[begin:end-1] .<= x .< edges[begin+1:end]), vals) |> filter(!isnothing)
+            freqs[idx] += 1
+        end
+
+        return new{T}(edges, freqs ./ diff(edges))
     end
 
 end
@@ -52,7 +54,7 @@ end
     elseif isa(mean, Real)
         mean
     else
-        throw(ArgumentError("invalid value of mean, $(mean)::$(typeof(mean))"))
+        throw(ArgumentError("invalid mean provided: $(mean)::$(typeof(mean))"))
     end
 
     n = sum(hist.freqs)
