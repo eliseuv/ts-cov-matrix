@@ -31,7 +31,7 @@ begin
 end
 
 # ╔═╡ dc2197ef-b3cb-44e5-8b55-6735f14509f0
-const cov_eigvals_dict = load_object("./data/noaa/1e5_uniform_points/sst_cov_eigvals.jld2") |> Dict
+const cov_eigvals_dict = load_object("./data/noaa/1e5_uniform_points/fft_filter/time_series_L=0_cov_eigvals.jld2") |> Dict
 
 # ╔═╡ a01a0b65-c55d-4463-89e0-de5dd55e6ec8
 const years_range = keys(cov_eigvals_dict) |> collect |> sort

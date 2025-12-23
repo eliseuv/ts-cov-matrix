@@ -127,7 +127,7 @@ Split the columns of a given matrix `M` into `n_groups` groups resulting in a 3D
 Calculate the eigenvalues of the covariance matrix of a given time series matrix `M`.
 """
 @inline covariance_matrix_eigvals(M::AbstractMatrix{<:Real}, n_groups::Integer) =
-    dropdims(mapslices(eigvals ∘ covariance_matrix, split_columns(M, n_groups), dims=(1, 2)), dims=(2,))
+    dropdims(mapslices(covariance_matrix_eigvals, split_columns(M, n_groups), dims=(1, 2)), dims=(2,))
 
 @doc raw"""
     generate_columns(M::AbstractMatrix{<:Real}, n_series::Integer, n_samples::Integer)
@@ -149,7 +149,12 @@ Bootstrap sample the columns of a matrix `M` by averaging random `n_batch` colum
         reduce(hcat, map(_ -> mean(M[:, randperm(n_cols)[begin:n_batch]], dims=2), 1:n_samples))
     end
 
-@inline marchenko_pastur(mc_steps, n_samples) =
+@doc raw"""
+    marchenko_pastur(mc_steps::Integer, n_samples::Integer)
+
+Returns the Marchenko-Pastur distribution along with its support for the given time series matrix dimensions.
+"""
+@inline marchenko_pastur(mc_steps::Integer, n_samples::Integer) =
     let a = 1 + (n_samples / mc_steps),
         b = 2 * sqrt(n_samples / mc_steps),
         λ₋ = a - b,
@@ -166,4 +171,5 @@ Bootstrap sample the columns of a matrix `M` by averaging random `n_batch` colum
         (f, (λ₋, λ₊))
 
     end
+
 end

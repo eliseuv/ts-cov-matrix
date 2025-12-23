@@ -1,6 +1,7 @@
 # Data files
 data
 *.txt
+*.csv
 *.zip
 
 # Plots
