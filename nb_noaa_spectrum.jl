@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.18
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -114,12 +114,12 @@ let fig = Figure(),
 	years_range = years_range[begin]:6:years_range[end],
 	λ_min = 0,
 	λ_max = maximum(y -> maximum(eigvals_dict[y]), years_range),
-	y_min = 3e-5,
+	y_min = 1e-4,
 	ax = Axis(fig[1,1];
 			  title="Covariance matrix spectrum",
 			  yscale=log10,
 			  limits=((λ_min, λ_max),(y_min, 2))),
-	nbins = 100,
+	nbins = 128,
 	edges = range(λ_min, λ_max, length=nbins+1),
 	cbarPal = :jet,
 	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
@@ -143,8 +143,8 @@ let fig = Figure(),
 
 		lines!(ax, x, y, color=c)
 
-		I = sum(diff(hist.edges[1]) .* hist.weights)
-		println("$(year_sel): $(I)")
+		#I = sum(diff(hist.edges[1]) .* hist.weights)
+		#println("$(year_sel): $(I)")
 		
 	end
 
@@ -152,7 +152,7 @@ let fig = Figure(),
 
 	Colorbar(fig[begin, end+1], colormap=cmap,
 			 limits=extrema(years_range), nsteps=length(years_range), 
-			 ticks=years_range[begin]:6:years_range[end])
+			 ticks=years_range)
 
 	save("./plots/noaa/spectra/eigval_hist_yearly.pdf", fig)
 	
@@ -193,8 +193,60 @@ let fig = Figure(),
 		lines!(ax, x, y, color=c)
 
 		
-		I = sum(diff(hist.edges[1]) .* y)
-		println("$(year_sel): $(I)")
+		#I = sum(diff(hist.edges[1]) .* y)
+		#println("$(year_sel): $(I)")
+	
+	end
+
+	axislegend(; merge = true)
+	
+	Colorbar(fig[begin, end+1], colormap=cmap,
+			 limits=extrema(years_range), nsteps=length(years_range), 
+			 ticks=years_range[begin]:6:years_range[end])
+
+	#save("./plots/noaa/spectra/eigval_hist_yearly_loglog.pdf", fig)
+	
+	fig
+end
+
+
+# ╔═╡ 7fcf11c7-c130-4503-be0e-976574a32b56
+let fig = Figure(),
+	λ_min = 4e-4,
+	λ_max = maximum(y -> maximum(eigvals_dict[y]), years_range),
+	y_min = 1e-3,
+	ax = Axis(fig[1,1];
+			  title="Covariance matrix spectrum",
+			  yscale=log10,
+			  xlabel=L"\lambda",
+			  xtickformat = values -> [rich("10", superscript("$(round(Int, value))"))  for value in values],
+			  limits=((log10(λ_min), log10(λ_max)),(y_min, 1e0))),
+	nbins = 128,
+	edges = range(log10(λ_min), log10(λ_max), length=nbins+1),
+	cbarPal = :jet,
+	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
+	
+	x = range(log10(λ₋), log(λ_max), length = 1000)
+	lines!(ax, x, (clip_min(y_min) ∘ mp).(10 .^ x);
+		   color=:black,
+		   label="Marchenko-Pastur")
+	band!(ax, x, fill(y_min, length(x)), (clip_min(y_min) ∘ mp).(10 .^ x);
+		  color = (:black, 0.3),
+		  label="Marchenko-Pastur")
+
+	for (year_sel, c) ∈ zip(years_range, cmap)
+
+		λ = eigvals_dict[year_sel] |> filter(>=(0)) |> vec .|> log10
+
+		hist = fit(Histogram, λ, edges) |> normalize
+
+		x = midpoints(hist.edges[1])
+		y = hist.weights
+
+		lines!(ax, x, y, color=c)
+		
+		#I = sum(diff(hist.edges[1]) .* y)
+		#println("$(year_sel): $(I)")
 	
 	end
 
@@ -209,6 +261,60 @@ let fig = Figure(),
 	fig
 end
 
+
+# ╔═╡ 23cfffd4-3f10-4433-a80f-0839d450a134
+let fig = Figure(),
+	years_range = years_range[begin]:3:years_range[end],
+	λ_min = 1e-5,
+	λ_max = 2e1,
+	y_min = 2e-4,
+	ax = Axis(fig[1,1];
+			  title="Covariance matrix spectrum",
+			  yscale=log10,
+			  xlabel=L"\Delta\lambda",
+			  xtickformat = values -> [rich("10", superscript("$(round(Int, value))"))  for value in values],
+			  limits=((log10(λ_min), log10(λ_max)),(y_min, 2))),
+	nbins = 128,
+	edges = range(log10(λ_min), log10(λ_max), length=nbins+1),
+	cbarPal = :jet,
+	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
+
+	for (year_sel, c) ∈ zip(years_range, cmap)
+
+		λ = diff(eigvals_dict[year_sel]; dims=1) |> vec .|> log10
+
+		hist = fit(Histogram, λ, edges) |> normalize
+
+		x = midpoints(hist.edges[1])
+		y = hist.weights
+
+		lines!(ax, x, y, color=c)
+
+	end
+
+	Colorbar(fig[begin, end+1], colormap=cmap,
+			 limits=extrema(years_range), nsteps=length(years_range), 
+			 ticks=years_range)
+
+	#save("./plots/noaa/spectra/eigval_hist_yearly.pdf", fig)
+	
+	fig
+end
+
+# ╔═╡ 8e360a0a-3ac4-4306-8e95-6f335ae22643
+let fig = Figure(),
+	ax = Axis(fig[1,1],
+			  xscale=log10,
+			  xtickformat = values -> [rich("10", superscript("$(round(Int, log10(value)))")) for value in values]
+			  )
+
+	x = 10.0 .^ (-3:3)
+	y = rand(length(x))
+
+	scatter!(ax, x, y)
+	
+	fig
+end
 
 # ╔═╡ e0d2e1e6-0a90-4eee-844d-3e880fb052bd
 	const df_stats = load_object("./data/noaa/1e5_uniform_points/fft_filter/time_series_L=0_cov_eigvals_stats.jld2")
@@ -357,7 +463,10 @@ end
 # ╠═0b5662ca-c2d6-4765-9630-6816e99c16fa
 # ╠═6f46378c-5dd7-4581-a0e8-76fe6d081595
 # ╠═caf1c8d4-8a45-4819-bffd-9911e65db467
+# ╠═7fcf11c7-c130-4503-be0e-976574a32b56
 # ╠═27097599-64b3-41fa-968b-c424846649b6
+# ╠═23cfffd4-3f10-4433-a80f-0839d450a134
+# ╠═8e360a0a-3ac4-4306-8e95-6f335ae22643
 # ╠═e0d2e1e6-0a90-4eee-844d-3e880fb052bd
 # ╠═2f150511-d25a-4d49-ab91-03ff967c67e3
 # ╠═548b08c1-b27e-49b2-887b-d5bb80169f33

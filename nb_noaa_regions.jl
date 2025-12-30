@@ -132,12 +132,12 @@ let fig = Figure(),
 	years_range = years_range[begin]:6:years_range[end],
 	λ_min = 0,
 	λ_max = maximum(y -> maximum(eigvals[y]), years_range),
-	y_min = 3e-5,
+	y_min = 1e-4,
 	ax = Axis(fig[1,1];
 			  title="Covariance matrix spectrum (low latitudes)",
 			  yscale=log10,
 			  limits=((λ_min, λ_max),(y_min, 2))),
-	nbins = 100,
+	nbins = 128,
 	edges = range(λ_min, λ_max, length=nbins+1),
 	cbarPal = :jet,
 	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
@@ -160,8 +160,9 @@ let fig = Figure(),
 		y = hist.weights
 
 		lines!(ax, x, y, color=c)
+		#band!(ax, x, fill(y_min, length(y)), (clip_min(y_min).(y)); color = (c, 0.1))
 
-		I = sum(diff(hist.edges[1]) .* hist.weights)
+		#I = sum(diff(hist.edges[1]) .* hist.weights)
 		#println("$(year_sel): $(I)")
 		
 	end
@@ -170,7 +171,7 @@ let fig = Figure(),
 
 	Colorbar(fig[begin, end+1], colormap=cmap,
 			 limits=extrema(years_range), nsteps=length(years_range), 
-			 ticks=years_range[begin]:6:years_range[end])
+			 ticks=years_range)
 
 	save("./plots/noaa/spectra/eigval_hist_yearly_low_lat.pdf", fig)
 	
@@ -183,12 +184,12 @@ let fig = Figure(),
 	years_range = years_range[begin]:6:years_range[end],
 	λ_min = 0,
 	λ_max = maximum(y -> maximum(eigvals[y]), years_range),
-	y_min = 3e-5,
+	y_min = 1e-4,
 	ax = Axis(fig[1,1];
 			  title="Covariance matrix spectrum (high latitudes)",
 			  yscale=log10,
 			  limits=((λ_min, λ_max),(y_min, 2))),
-	nbins = 100,
+	nbins = 128,
 	edges = range(λ_min, λ_max, length=nbins+1),
 	cbarPal = :jet,
 	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
@@ -211,8 +212,9 @@ let fig = Figure(),
 		y = hist.weights
 
 		lines!(ax, x, y, color=c)
+		#band!(ax, x, fill(y_min, length(y)), (clip_min(y_min).(y));color = (c, 0.1))
 
-		I = sum(diff(hist.edges[1]) .* hist.weights)
+		#I = sum(diff(hist.edges[1]) .* hist.weights)
 		#println("$(year_sel): $(I)")
 		
 	end
@@ -221,7 +223,7 @@ let fig = Figure(),
 
 	Colorbar(fig[begin, end+1], colormap=cmap,
 			 limits=extrema(years_range), nsteps=length(years_range), 
-			 ticks=years_range[begin]:6:years_range[end])
+			 ticks=years_range)
 
 	save("./plots/noaa/spectra/eigval_hist_yearly_high_lat.pdf", fig)
 	
@@ -274,7 +276,7 @@ let fig = Figure(),
 			 limits=extrema(years_range), nsteps=length(years_range), 
 			 ticks=years_range[begin]:6:years_range[end])
 
-	save("./plots/noaa/spectra/eigval_hist_yearly_low_lat_loglog.pdf", fig)
+	#save("./plots/noaa/spectra/eigval_hist_yearly_low_lat_loglog.pdf", fig)
 	
 	fig
 end
@@ -325,7 +327,7 @@ let fig = Figure(),
 			 limits=extrema(years_range), nsteps=length(years_range), 
 			 ticks=years_range[begin]:6:years_range[end])
 
-	save("./plots/noaa/spectra/eigval_hist_yearly_high_lat_loglog.pdf", fig)
+	#save("./plots/noaa/spectra/eigval_hist_yearly_high_lat_loglog.pdf", fig)
 	
 	fig
 end
@@ -398,6 +400,112 @@ let fig = Figure(),
 	fig
 end
 
+# ╔═╡ c4ebaa95-0174-464d-9a5f-bbe6805b42df
+ let fig = Figure(),
+	eigvals = eigvals_low,
+	λ_min = 1e-3,
+	λ_max = maximum(y -> maximum(eigvals[y]), years_range),
+	y_min = 1e-3,
+	ax = Axis(fig[1,1];
+			  title="Covariance matrix spectrum (low latitudes)",
+			  yscale=log10,
+			  xlabel=L"\lambda",
+			  xtickformat = values -> [rich("10", superscript("$(round(Int, value))"))  for value in values],
+			  limits=((log10(λ_min), log10(λ_max)),(y_min, 1e0))),
+	nbins = 128,
+	edges = range(log10(λ_min), log10(λ_max), length=nbins+1),
+	cbarPal = :jet,
+	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
+
+	x = range(log10(λ₋), log(λ_max), length = 1000)
+	lines!(ax, x, (clip_min(y_min) ∘ mp).(10 .^ x);
+		   color=:black,
+		   label="Marchenko-Pastur")
+	band!(ax, x, fill(y_min, length(x)), (clip_min(y_min) ∘ mp).(10 .^ x);
+		  color = (:black, 0.3),
+		  label="Marchenko-Pastur")
+	 
+	for (year_sel, c) ∈ zip(years_range, cmap)
+
+		λ = eigvals[year_sel] |> filter(>=(0)) |> vec .|> log10
+
+		hist = fit(Histogram, λ, edges) |> normalize
+
+		x = midpoints(hist.edges[1])
+		y = hist.weights
+
+		lines!(ax, x, y, color=c)
+
+		
+		I = sum(diff(hist.edges[1]) .* y)
+		#println("$(year_sel): $(I)")
+	
+	end
+	 
+	axislegend(; merge = true)
+	
+	Colorbar(fig[begin, end+1], colormap=cmap,
+			 limits=extrema(years_range), nsteps=length(years_range), 
+			 ticks=years_range[begin]:6:years_range[end])
+
+	save("./plots/noaa/spectra/eigval_hist_yearly_low_lat_loglog.pdf", fig)
+	
+	fig
+end
+
+# ╔═╡ f04ec892-1640-4394-bc8e-f56ba2064958
+ let fig = Figure(),
+	eigvals = eigvals_high,
+	λ_min = 1e-3,
+	λ_max = maximum(y -> maximum(eigvals[y]), years_range),
+	y_min = 1e-3,
+	ax = Axis(fig[1,1];
+			  title="Covariance matrix spectrum (high latitudes)",
+			  yscale=log10,
+			  xlabel=L"\lambda",
+			  xtickformat = values -> [rich("10", superscript("$(round(Int, value))"))  for value in values],
+			  limits=((log10(λ_min), log10(λ_max)),(y_min, 1e0))),
+	nbins = 128,
+	edges = range(log10(λ_min), log10(λ_max), length=nbins+1),
+	cbarPal = :jet,
+	cmap = cgrad(colorschemes[cbarPal], length(years_range), categorical=true)
+
+	x = range(log10(λ₋), log(λ_max), length = 1000)
+	lines!(ax, x, (clip_min(y_min) ∘ mp).(10 .^ x);
+		   color=:black,
+		   label="Marchenko-Pastur")
+	band!(ax, x, fill(y_min, length(x)), (clip_min(y_min) ∘ mp).(10 .^ x);
+		  color = (:black, 0.3),
+		  label="Marchenko-Pastur")
+	 
+	for (year_sel, c) ∈ zip(years_range, cmap)
+
+		λ = eigvals[year_sel] |> filter(>=(0)) |> vec .|> log10
+
+		hist = fit(Histogram, λ, edges) |> normalize
+
+		x = midpoints(hist.edges[1])
+		y = hist.weights
+
+		lines!(ax, x, y, color=c)
+
+		
+		I = sum(diff(hist.edges[1]) .* y)
+		#println("$(year_sel): $(I)")
+	
+	end
+
+	axislegend(; merge = true)
+	 
+	Colorbar(fig[begin, end+1], colormap=cmap,
+			 limits=extrema(years_range), nsteps=length(years_range), 
+			 ticks=years_range[begin]:6:years_range[end])
+
+	save("./plots/noaa/spectra/eigval_hist_yearly_high_lat_loglog.pdf", fig)
+	
+	fig
+end
+
 # ╔═╡ Cell order:
 # ╠═545aaffc-f9e6-11ef-3071-a1ea565f5cb0
 # ╠═06f4e22b-9379-46a8-9477-824aa10f7bee
@@ -418,3 +526,5 @@ end
 # ╠═fb04e65b-7cf5-4e10-9084-b4b2ce709df1
 # ╠═e4d32997-f322-4e7e-8d20-a5c8368b0fa6
 # ╠═ed59437f-d6ae-4fb6-8283-fd0574b0c259
+# ╠═c4ebaa95-0174-464d-9a5f-bbe6805b42df
+# ╠═f04ec892-1640-4394-bc8e-f56ba2064958
